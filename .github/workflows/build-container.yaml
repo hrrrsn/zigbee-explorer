@@ -6,6 +6,9 @@ on:
     paths-ignore:
       - '.*/**'
       - 'renovate.json'
+      - 'LICENSE'
+      - 'README.md'
+      - '.gitignore'
   workflow_dispatch:
 
 jobs:
