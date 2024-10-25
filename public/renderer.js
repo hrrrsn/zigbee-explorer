@@ -75,7 +75,6 @@ async function connectToServer(id) {
   }
 }
 
-// Enhanced console output handling
 ipcRenderer.on('console-log', (event, log) => {
   const consoleOutput = document.getElementById('console-output');
   const timestamp = new Date().toLocaleTimeString();
@@ -83,7 +82,6 @@ ipcRenderer.on('console-log', (event, log) => {
   consoleOutput.scrollTop = consoleOutput.scrollHeight;
 });
 
-// Enhanced connection status handling
 ipcRenderer.on('connection-status', (event, { status, id }) => {
   const button = document.getElementById(`connect-${id}`);
   switch (status) {
@@ -110,7 +108,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const version = await ipcRenderer.invoke('get-app-version');
   document.getElementById('version-number').textContent = `${version}`;
   
-  // Clear console output on load
   const consoleOutput = document.getElementById('console-output');
   consoleOutput.value = '';
 });
