@@ -12,8 +12,7 @@
     {
       "matchManagers": ["npm"],
       "automerge": true,
-      "ignoreTests": true,
-      "groupName": "npm dependencies"
+      "ignoreTests": true
     }
 
   ]
