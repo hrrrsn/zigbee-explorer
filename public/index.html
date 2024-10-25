@@ -1,3 +1,4 @@
+<!-- public/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -40,8 +41,31 @@
             align-items: center;
         }
 
-        table td {
+        /* Table layout and text wrapping styles */
+        .table {
+            table-layout: fixed;
+            width: 100%;
+        }
+        
+        .table th:nth-child(1) {
+            width: 15%;
+        }
+        
+        .table th:nth-child(2) {
+            width: 85%;
+        }
+        
+        .table td {
             vertical-align: top;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 0;
+        }
+
+        .table td code {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            word-break: break-all;
         }
 
         .event-row {
@@ -70,7 +94,6 @@
                         <thead>
                             <tr>
                                 <th>Timestamp</th>
-                                <th>Device</th>
                                 <th>Event</th>
                             </tr>
                         </thead>
@@ -79,6 +102,7 @@
                 </div>
             </div>
         </div>
+        <div id="version" style="position: fixed; bottom: 10px; right: 10px; color: grey; font-size: 0.9em;"></div>
     </div>
 
     <script>
@@ -90,11 +114,16 @@
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
 
+            if (data.mqttServer && data.mqttTopic && data.version) {
+                document.title = `Zigbee Devices - ${data.mqttServer}`;
+                document.getElementById('version').textContent = `${data.version}`;
+            }
+
             if (data.latestMessage) {
                 const logEntry = `
                     <tr class="event-row">
-                        <td>${new Date().toLocaleTimeString()}</td>
-                        <td>${data.latestMessage.payload.Name || 'Unnamed'} <span class="small-grey">(${data.latestMessage.payload.Device || 'Unknown'})</span></td>
+                        <td>${new Date().toLocaleTimeString()}</br>
+                            ${data.latestMessage.payload.Name ? `${data.latestMessage.payload.Name} <span class="small-grey">(${data.latestMessage.payload.Device})</span>` : data.latestMessage.payload.Device}</td>
                         <td><code>${JSON.stringify(data.latestMessage.raw)}</code></td>
                     </tr>
                 `;
@@ -118,11 +147,11 @@
                                     <div class="small-grey" id="time-${device.Device}">${moment(device.timestamp).fromNow()}</div>
                                 </div>
                                 <div class="device-info">
-                                    <span>${getSignalEmoji(device.LinkQuality)} ${device.LinkQuality || ''}%</span>
-                                    <span>${device.BatteryPercentage !== undefined ? `${getBatteryEmoji(device.BatteryPercentage)} ${device.BatteryPercentage}%` : ''}</span>
-                                    <span>${device.Temperature ? `☀️ ${device.Temperature}°C` : ''}</span>
-                                    <span>${device.Humidity ? `💧 ${device.Humidity}%` : ''}</span>
-                                    <span>📩 ${device.messageCount || 0}</span>
+                                    ${device.LinkQuality ? `<span>${getSignalEmoji(device.LinkQuality)} ${device.LinkQuality}</span>` : ''}
+                                    ${device.BatteryPercentage !== undefined ? `<span>${getBatteryEmoji(device.BatteryPercentage)} ${device.BatteryPercentage}%</span>` : ''}
+                                    ${device.Temperature ? `<span>☀️ ${device.Temperature}°C</span>` : ''}
+                                    ${device.Humidity ? `<span>💧 ${device.Humidity}%</span>` : ''}
+                                    ${device.messageCount ? `<span>📩 ${device.messageCount}</span>` : '<span>📩 0</span>'}
                                 </div>
                             </div>
                             <hr>
@@ -209,7 +238,6 @@
         function copyToClipboard(selector) {
             const el = document.querySelector(selector);
             navigator.clipboard.writeText(el.textContent);
-            alert('Copied to clipboard!');
         }
 
         setInterval(() => {
@@ -222,6 +250,14 @@
                 }
             });
         }, 5000);
+
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-bs-theme', (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'))
+        }
+
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            document.documentElement.setAttribute('data-bs-theme', (e.matches ? 'dark' : 'light'));
+        });
     </script>
     <script src="/js/moment.min.js"></script>
 </body>

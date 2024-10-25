@@ -1,9 +1,118 @@
 {
+  "name": "zigbee-explorer",
+  "version": "1.1.0",
+  "description": "Zigbee MQTT message explorer",
+  "author": "Harrison Gulliver <harrison@hpg.nz>",
+  "license": "MIT",
+  "main": "app.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder -mwl",
+    "macos": "electron-builder --mac",
+    "windows": "electron-builder --win",
+    "linux": "electron-builder --linux"
+  },
   "dependencies": {
+    "all": "^0.0.0",
     "bootstrap": "^5.3.3",
+    "electron-store": "^10.0.0",
     "express": "^4.21.1",
+    "get-port": "^7.1.0",
+    "git-branch": "^2.0.1",
+    "git-rev-sync": "^3.0.2",
     "moment": "^2.30.1",
     "mqtt": "^5.10.1",
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "electron": "^33.0.2",
+    "electron-builder": "^25.1.8"
+  },
+  "optionalDependencies": {
+    "dmg-license": "^1.0.11"
+  },
+  "build": {
+    "appId": "nz.hpg.zigbee-explorer",
+    "productName": "Zigbee Explorer",
+    "copyright": "Copyright © 2024 Harrison Gulliver",
+    "publish": false,
+    "files": [
+      "app.js",
+      "server.js",
+      "public/**/*",
+      "node_modules/**/*",
+      "build.json",
+      "LICENSE"
+    ],
+    "directories": {
+      "buildResources": "build"
+    },
+    "mac": {
+      "category": "public.app-category.utilities",
+      "icon": "public/icons/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64",
+            "universal"
+          ]
+        }
+      ],
+      "artifactName": "zigbee-explorer-macOS-${arch}-${version}.${ext}",
+      "darkModeSupport": true
+    },
+    "win": {
+      "icon": "public/icons/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "zigbee-explorer-windows-${arch}-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "zigbee-explorer-windows-portable-${arch}-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Zigbee Explorer",
+      "artifactName": "zigbee-explorer-windows-setup-${arch}-${version}.${ext}"
+    },
+    "linux": {
+      "icon": "public/icons",
+      "target": [
+        {
+          "target": "tar.gz",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "zigbee-explorer-linux-${arch}-${version}.${ext}",
+      "category": "Utility"
+    }
   }
 }
