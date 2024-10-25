@@ -72,7 +72,7 @@ jobs:
       - name: Post-build clean up
         run: rm -f dist/*.blockmap
       - name: Upload Linux Release Assets
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: dist/*-linux-*
           tag_name: ${{ needs.set-version.outputs.build }}
@@ -114,7 +114,7 @@ jobs:
       - name: Post-build clean up
         run: rm -f dist/*.blockmap
       - name: Upload macOS Release Assets
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: dist/*-macOS-*
           tag_name: ${{ needs.set-version.outputs.build }}
@@ -156,7 +156,7 @@ jobs:
       - name: Post-build clean up
         run: Remove-Item -Path dist\*.blockmap
       - name: Upload Windows Release Assets
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: dist/*-windows-*
           tag_name: ${{ needs.set-version.outputs.build }}
