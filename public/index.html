@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zigbee Devices</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <style>
+        .highlight { background-color: yellow; }
+        .code-block { font-family: monospace; background: #f8f9fa; padding: 1rem; word-wrap: break-word; position: relative; }
+        .code-block button { position: absolute; top: 10px; right: 10px; }
+
+        .small-grey { color: grey; font-size: 0.9em; }
+        .flash { animation: flash 1s ease-in-out; }
+        @keyframes flash {
+            from { background-color: yellow; }
+            to { background-color: transparent; }
+        }
+
+        .device-info {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .device-info span {
+            margin-right: 10px;
+        }
+        .device-row {
+            padding: 10px;
+            cursor: pointer;
+        }
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .device-details-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        table td {
+            vertical-align: top;
+        }
+
+        .event-row {
+            border-bottom: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Device Panel -->
+            <div class="col-lg-4 col-md-5 mb-4">
+                <div class="table-responsive">
+                    <div id="deviceTable"></div>
+                </div>
+            </div>
+            <!-- Details -->
+            <div class="col-lg-8 col-md-7 mb-4">
+                <div id="deviceDetailsPanel">
+                    <div class="device-details-header">
+                        <h4 id="deviceDetailsHeader">Event Logs</h4>
+                        <button class="btn btn-danger btn-sm" id="closeDetails" onclick="closeDeviceDetails()" hidden>Close</button>
+                    </div>
+                    <div id="deviceDetails"></div>
+                    <table class="table" id="eventLogsTable">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Device</th>
+                                <th>Event</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eventLogsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ws = new WebSocket(`ws://${location.host}`);
+        let currentDeviceId = null;
+        let eventLogs = [];
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            if (data.latestMessage) {
+                const logEntry = `
+                    <tr class="event-row">
+                        <td>${new Date().toLocaleTimeString()}</td>
+                        <td>${data.latestMessage.payload.Name || 'Unnamed'} <span class="small-grey">(${data.latestMessage.payload.Device || 'Unknown'})</span></td>
+                        <td><code>${JSON.stringify(data.latestMessage.raw)}</code></td>
+                    </tr>
+                `;
+                document.getElementById("eventLogsBody").insertAdjacentHTML('afterbegin', logEntry); // Add to top
+            }
+
+            fetch('/api/devices')
+                .then(response => response.json())
+                .then(devices => {
+                    const deviceTable = document.getElementById("deviceTable");
+                    deviceTable.innerHTML = '';
+
+                    devices.forEach(device => {
+                        const row = `
+                            <div id="device-${device.Device}" class="device-row" onclick="showDeviceDetails('${device.Device}', '${device.Name || 'Unnamed'}')">
+                                <div class="device-header">
+                                    <div>
+                                        <strong>${device.Name || 'Unknown'}</strong> 
+                                        <span class="small-grey">(${device.Device})</span>
+                                    </div>
+                                    <div class="small-grey" id="time-${device.Device}">${moment(device.timestamp).fromNow()}</div>
+                                </div>
+                                <div class="device-info">
+                                    <span>${getSignalEmoji(device.LinkQuality)} ${device.LinkQuality || ''}%</span>
+                                    <span>${device.BatteryPercentage !== undefined ? `${getBatteryEmoji(device.BatteryPercentage)} ${device.BatteryPercentage}%` : ''}</span>
+                                    <span>${device.Temperature ? `☀️ ${device.Temperature}°C` : ''}</span>
+                                    <span>${device.Humidity ? `💧 ${device.Humidity}%` : ''}</span>
+                                    <span>📩 ${device.messageCount || 0}</span>
+                                </div>
+                            </div>
+                            <hr>
+                        `;
+                        deviceTable.insertAdjacentHTML('beforeend', row);
+
+                        if (data.latestMessage && data.latestMessage.payload.Device === device.Device) {
+                            const rowElement = document.getElementById(`device-${device.Device}`);
+                            rowElement.classList.add('flash');
+                            setTimeout(() => {
+                                rowElement.classList.remove('flash');
+                            }, 1000);
+                        }
+
+                        if (currentDeviceId === device.Device && data.latestMessage.payload.Device === currentDeviceId) {
+                            showDeviceDetails(currentDeviceId, device.Name, true);
+                        }
+                    });
+                });
+        };
+
+        function showDeviceDetails(deviceId, deviceName, skipFetch = false) {
+            currentDeviceId = deviceId;
+
+            document.getElementById('deviceDetailsHeader').textContent = deviceName;
+            document.getElementById('closeDetails').hidden = false;
+            document.getElementById('eventLogsTable').hidden = true;
+            document.getElementById('deviceDetails').innerHTML = '';
+
+            fetch(`/api/devices/${deviceId}/history`)
+                .then(response => response.json())
+                .then(history => {
+                    history.forEach((entry, index) => {
+                        const previousEntry = history[index + 1] || {};
+                        const highlighted = highlightChanges(previousEntry.data || {}, entry.data);
+                        const historyItem = `
+                            <div class="code-block" id="history-${index}">
+                                <span class="small-grey">${moment(entry.timestamp).fromNow()}</span><br>
+                                ${highlighted}
+                                <button class="btn btn-secondary btn-sm" onclick="copyToClipboard('#history-${index}')">📋</button>
+                            </div>
+                        `;
+                        document.getElementById('deviceDetails').insertAdjacentHTML('beforeend', historyItem);
+                    });
+                });
+        }
+
+        function closeDeviceDetails() {
+            currentDeviceId = null;
+            document.getElementById('deviceDetailsHeader').textContent = 'Events';
+            document.getElementById('closeDetails').hidden = true;
+            document.getElementById('deviceDetails').innerHTML = '';
+            document.getElementById('eventLogsTable').hidden = false;
+        }
+
+        function getSignalEmoji(quality) {
+            if (quality >= 200) return '📶 🟢';
+            if (quality >= 150) return '📶 🟢';
+            if (quality >= 100) return '📶 🟢';
+            if (quality >= 50) return '📶 🟡';
+            return '📶 🔴';
+        }
+
+        function getBatteryEmoji(percentage) {
+            // if (percentage >= 90) return '🔋';
+            // if (percentage >= 60) return '🔋';
+            if (percentage >= 20) return '🔋';
+            return '🪫';
+        }
+
+        function highlightChanges(previous, current) {
+            let result = JSON.stringify(current, null, 2);
+            Object.keys(current).forEach(key => {
+                if (previous[key] !== current[key]) {
+                    result = result.replace(
+                        `"${key}": ${JSON.stringify(current[key])}`,
+                        `<span class="highlight">"${key}": ${JSON.stringify(current[key])}</span>`
+                    );
+                }
+            });
+            return `<code>${result}</code>`;
+        }
+
+        function copyToClipboard(selector) {
+            const el = document.querySelector(selector);
+            navigator.clipboard.writeText(el.textContent);
+            alert('Copied to clipboard!');
+        }
+
+        setInterval(() => {
+            const timeElements = document.querySelectorAll('.small-grey');
+            timeElements.forEach(el => {
+                const timestamp = el.innerHTML.split('<br>')[1];
+                if (timestamp) {
+                    const date = moment(timestamp);
+                    el.innerHTML = `${el.innerHTML.split('<br>')[0]}<br>${date.fromNow()}`;
+                }
+            });
+        }, 5000);
+    </script>
+    <script src="/js/moment.min.js"></script>
+</body>
+</html>

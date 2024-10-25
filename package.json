@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "bootstrap": "^5.3.3",
+    "express": "^4.21.1",
+    "moment": "^2.30.1",
+    "mqtt": "^5.10.1",
+    "ws": "^8.18.0"
+  }
+}
